@@ -726,17 +726,31 @@ function beginWatching(){
     {enableHighAccuracy:true, timeout:15000, maximumAge:60000});
 }
 
-// Called when user taps the location button — satisfies iOS user-gesture requirement
+// Called when user taps the location button — the tap gesture is required by iOS Safari
 function startLocationFromTap(){
-  document.getElementById('locTapBtn').querySelector('span').textContent='Finding you… 🌴';
-  beginWatching();
+  const btn=document.getElementById('locTapBtn');
+  btn.disabled=true;
+  btn.querySelector('span').textContent='Finding you… 🌴';
+  // Use getCurrentPosition first — most reliable for triggering the iOS permission dialog
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      onPosition(pos);
+      beginWatching(); // keep updating in the background
+    },
+    err=>{
+      onGeoError(err);
+    },
+    {enableHighAccuracy:true, timeout:15000, maximumAge:0}
+  );
 }
 
 function retryLocation(){
-  showStatus();
-  document.getElementById('locDot').className='loc-dot';
-  document.getElementById('locText').textContent='Finding you on the island… 🌴';
-  beginWatching();
+  document.getElementById('locTapBtn').style.display='flex';
+  document.getElementById('locStatus').style.display='none';
+  document.getElementById('locTapBtn').disabled=false;
+  document.getElementById('locTapBtn').querySelector('span').textContent='Tap to find spots near you!';
+  triedLowAccuracy=false;
+  if(watchId) navigator.geolocation.clearWatch(watchId);
 }
 
 function initLocation(){
@@ -746,11 +760,8 @@ function initLocation(){
     document.getElementById('locText').textContent='Location not available on this device 🌴';
     return;
   }
-  // Show the tap button — iOS Safari needs a user gesture to trigger the permission dialog
-  // On desktop/Android the button is still tappable but auto-starts after 800ms as a convenience
-  setTimeout(()=>{
-    if(!userLat) beginWatching(); // auto-start on non-iOS (tap button still shown as fallback)
-  }, 800);
+  // Tap button is already visible in HTML — do nothing here.
+  // iOS Safari REQUIRES a real user tap before showing the location permission dialog.
 }
 
 // ─────────────────────────────────────────────
