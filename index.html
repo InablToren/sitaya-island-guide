@@ -115,6 +115,25 @@
       0%,100% { opacity:1; transform:scale(1); }
       50%      { opacity:.5; transform:scale(1.6); }
     }
+    .loc-tap-btn {
+      display: flex; align-items: center; gap: 8px;
+      width: 100%; background: none; border: none;
+      color: rgba(255,255,255,.95); font-family: 'Alegreya Sans', sans-serif;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      padding: 0; text-align: left; letter-spacing: .2px;
+    }
+    .loc-tap-btn .pulse-ring {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--gold); display: flex; align-items: center;
+      justify-content: center; font-size: 15px; flex-shrink: 0;
+      box-shadow: 0 0 0 0 rgba(250,186,118,.6);
+      animation: ring 2s infinite;
+    }
+    @keyframes ring {
+      0%   { box-shadow: 0 0 0 0 rgba(250,186,118,.6); }
+      70%  { box-shadow: 0 0 0 10px rgba(250,186,118,0); }
+      100% { box-shadow: 0 0 0 0 rgba(250,186,118,0); }
+    }
 
     /* ── Map ── */
     #map { height: 200px; width: 100%; z-index: 1; }
@@ -291,8 +310,14 @@
 
   <!-- Location bar -->
   <div class="loc-bar" id="locBar">
-    <div class="loc-dot" id="locDot"></div>
-    <span id="locText">Finding you on the island… 🌴</span>
+    <button class="loc-tap-btn" id="locTapBtn" onclick="startLocationFromTap()">
+      <div class="pulse-ring">📍</div>
+      <span>Tap to find spots near you!</span>
+    </button>
+    <div id="locStatus" style="display:none; align-items:center; gap:9px; width:100%">
+      <div class="loc-dot" id="locDot"></div>
+      <span id="locText"></span>
+    </div>
   </div>
 
   <!-- Map -->
@@ -656,18 +681,24 @@ function render(){
 let watchId = null;
 let triedLowAccuracy = false;
 
+function showStatus(){
+  document.getElementById('locTapBtn').style.display='none';
+  const s=document.getElementById('locStatus');
+  s.style.display='flex';
+}
+
 function onPosition(pos){
   userLat=pos.coords.latitude; userLng=pos.coords.longitude;
   triedLowAccuracy=false;
-  const dot=document.getElementById('locDot'), text=document.getElementById('locText');
-  dot.className='loc-dot found';
-  text.textContent=`📍 You're on the map! Showing spots within ${radiusKm} km`;
+  showStatus();
+  document.getElementById('locDot').className='loc-dot found';
+  document.getElementById('locText').textContent=`📍 You're on the map! Showing spots within ${radiusKm} km`;
   updateMapUser(userLat,userLng);
   render();
 }
 
 function onGeoError(err){
-  // Timeout with high accuracy? Retry silently with standard accuracy (common on iOS)
+  // Timeout with high accuracy? Retry silently with standard accuracy (common on iPhone indoors)
   if(err.code===3 && !triedLowAccuracy){
     triedLowAccuracy=true;
     if(watchId) navigator.geolocation.clearWatch(watchId);
@@ -675,38 +706,51 @@ function onGeoError(err){
       {enableHighAccuracy:false, timeout:20000, maximumAge:60000});
     return;
   }
+  showStatus();
   const dot=document.getElementById('locDot'), text=document.getElementById('locText');
   dot.className='loc-dot error';
   if(err.code===1){
-    text.innerHTML='📵 Location is off. '
+    text.innerHTML='📵 Location blocked. '
       +'<span style="text-decoration:underline;cursor:pointer;color:var(--gold)" onclick="retryLocation()">Tap to retry</span>'
-      +' — or on iPhone: Settings → Safari → Location → Allow.';
+      +' — iPhone: Settings → Safari → Location → Allow.';
   } else {
     text.innerHTML='😅 Couldn\'t find you. '
       +'<span style="text-decoration:underline;cursor:pointer;color:var(--gold)" onclick="retryLocation()">Tap to try again</span>';
   }
 }
 
-function retryLocation(){
-  if(watchId) navigator.geolocation.clearWatch(watchId);
+function beginWatching(){
   triedLowAccuracy=false;
-  const dot=document.getElementById('locDot'), text=document.getElementById('locText');
-  dot.className='loc-dot';
-  text.textContent='Finding you on the island… 🌴';
+  if(watchId) navigator.geolocation.clearWatch(watchId);
   watchId=navigator.geolocation.watchPosition(onPosition, onGeoError,
     {enableHighAccuracy:true, timeout:15000, maximumAge:60000});
 }
 
+// Called when user taps the location button — satisfies iOS user-gesture requirement
+function startLocationFromTap(){
+  document.getElementById('locTapBtn').querySelector('span').textContent='Finding you… 🌴';
+  beginWatching();
+}
+
+function retryLocation(){
+  showStatus();
+  document.getElementById('locDot').className='loc-dot';
+  document.getElementById('locText').textContent='Finding you on the island… 🌴';
+  beginWatching();
+}
+
 function initLocation(){
-  const dot=document.getElementById('locDot'), text=document.getElementById('locText');
   if(!navigator.geolocation){
-    dot.className='loc-dot error';
-    text.textContent='Location not available on this device 🌴';
+    showStatus();
+    document.getElementById('locDot').className='loc-dot error';
+    document.getElementById('locText').textContent='Location not available on this device 🌴';
     return;
   }
-  // Directly call watchPosition — works on iOS Safari without needing navigator.permissions
-  watchId=navigator.geolocation.watchPosition(onPosition, onGeoError,
-    {enableHighAccuracy:true, timeout:15000, maximumAge:60000});
+  // Show the tap button — iOS Safari needs a user gesture to trigger the permission dialog
+  // On desktop/Android the button is still tappable but auto-starts after 800ms as a convenience
+  setTimeout(()=>{
+    if(!userLat) beginWatching(); // auto-start on non-iOS (tap button still shown as fallback)
+  }, 800);
 }
 
 // ─────────────────────────────────────────────
