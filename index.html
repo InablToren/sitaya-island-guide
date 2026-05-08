@@ -651,10 +651,14 @@ function render(){
 }
 
 // ─────────────────────────────────────────────
-//  GEOLOCATION
+//  GEOLOCATION  (iOS Safari compatible)
 // ─────────────────────────────────────────────
+let watchId = null;
+let triedLowAccuracy = false;
+
 function onPosition(pos){
   userLat=pos.coords.latitude; userLng=pos.coords.longitude;
+  triedLowAccuracy=false;
   const dot=document.getElementById('locDot'), text=document.getElementById('locText');
   dot.className='loc-dot found';
   text.textContent=`📍 You're on the map! Showing spots within ${radiusKm} km`;
@@ -662,62 +666,47 @@ function onPosition(pos){
   render();
 }
 
-function onError(err){
+function onGeoError(err){
+  // Timeout with high accuracy? Retry silently with standard accuracy (common on iOS)
+  if(err.code===3 && !triedLowAccuracy){
+    triedLowAccuracy=true;
+    if(watchId) navigator.geolocation.clearWatch(watchId);
+    watchId=navigator.geolocation.watchPosition(onPosition, onGeoError,
+      {enableHighAccuracy:false, timeout:20000, maximumAge:60000});
+    return;
+  }
   const dot=document.getElementById('locDot'), text=document.getElementById('locText');
   dot.className='loc-dot error';
   if(err.code===1){
-    // Permission denied — give actionable help
-    text.innerHTML='📵 Location access is off. '
+    text.innerHTML='📵 Location is off. '
       +'<span style="text-decoration:underline;cursor:pointer;color:var(--gold)" onclick="retryLocation()">Tap to retry</span>'
-      +' or enable it in your browser settings.';
+      +' — or on iPhone: Settings → Safari → Location → Allow.';
   } else {
-    // Timeout / unavailable — offer a retry
-    text.innerHTML='😅 Could not find you. '
+    text.innerHTML='😅 Couldn\'t find you. '
       +'<span style="text-decoration:underline;cursor:pointer;color:var(--gold)" onclick="retryLocation()">Tap to try again</span>';
   }
 }
 
-function startWatching(highAccuracy){
-  navigator.geolocation.getCurrentPosition(onPosition, err=>{
-    if(highAccuracy && err.code!==1){
-      // High-accuracy failed (timeout/unavailable) — retry with standard accuracy
-      startWatching(false);
-    } else {
-      onError(err);
-    }
-  }, {enableHighAccuracy:highAccuracy, timeout:12000, maximumAge:30000});
-
-  // Keep updating position in background once we have permission
-  navigator.geolocation.watchPosition(onPosition, ()=>{}, {enableHighAccuracy:false, maximumAge:30000});
-}
-
 function retryLocation(){
+  if(watchId) navigator.geolocation.clearWatch(watchId);
+  triedLowAccuracy=false;
   const dot=document.getElementById('locDot'), text=document.getElementById('locText');
   dot.className='loc-dot';
   text.textContent='Finding you on the island… 🌴';
-  startWatching(true);
+  watchId=navigator.geolocation.watchPosition(onPosition, onGeoError,
+    {enableHighAccuracy:true, timeout:15000, maximumAge:60000});
 }
 
 function initLocation(){
   const dot=document.getElementById('locDot'), text=document.getElementById('locText');
   if(!navigator.geolocation){
     dot.className='loc-dot error';
-    text.textContent='Location not supported on this device 🌴';
+    text.textContent='Location not available on this device 🌴';
     return;
   }
-  // Check permission state before asking — avoids confusing immediate "denied" on some browsers
-  if(navigator.permissions){
-    navigator.permissions.query({name:'geolocation'}).then(status=>{
-      if(status.state==='denied'){
-        onError({code:1});
-      } else {
-        startWatching(true);
-      }
-      status.onchange=()=>{ if(status.state==='denied') onError({code:1}); };
-    }).catch(()=>startWatching(true));
-  } else {
-    startWatching(true);
-  }
+  // Directly call watchPosition — works on iOS Safari without needing navigator.permissions
+  watchId=navigator.geolocation.watchPosition(onPosition, onGeoError,
+    {enableHighAccuracy:true, timeout:15000, maximumAge:60000});
 }
 
 // ─────────────────────────────────────────────
