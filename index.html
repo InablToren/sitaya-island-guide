@@ -338,6 +338,7 @@
       <button class="cat-btn" data-cat="beaches" id="beachBtn">🏖️ Beaches</button>
       <button class="cat-btn" data-cat="activities">🎯 Activities</button>
       <button class="cat-btn" data-cat="gyms">💪 Gyms</button>
+      <button class="cat-btn" data-cat="massage">💆 Massage</button>
     </div>
   </div>
 
@@ -373,7 +374,7 @@ const PLACES = [
     open:8,  close:22 },
   { name:"LE Burger Shack",                  lat:9.7095068, lng:99.9910532, cat:"restaurants", emoji:"🍔",
     note:"Very good burgers! Our absolute fave: La-French with an extra fried egg. Trust us on this one! 🤤",
-    open:11, close:22 },
+    open:12, close:22 },
   { name:"La Ceviche's",                     lat:9.7103965, lng:99.9876193, cat:"restaurants", emoji:"🐟",
     note:"Fresh, vibrant ceviche bar — a taste of the ocean on every plate! 🌊",
     open:11, close:22 },
@@ -391,7 +392,7 @@ const PLACES = [
     open:11, close:22 },
   { name:"Peppercorn",                       lat:9.7812786, lng:99.9712379, cat:"restaurants", emoji:"🥩",
     note:"Amazing steaks! If you love a great cut of meat, this is THE place. Don't miss it! 🔥",
-    open:17, close:23 },
+    open:16, close:23, closedDays:[6] },
   { name:"House of Sanskara",                lat:9.6791726, lng:100.0683591,cat:"restaurants", emoji:"🍛",
     note:"Haad Rin gem! Must-try: Panang curry with rice + Num-Tok Schnitzel. You'll thank us later! 🤤",
     open:11, close:22 },
@@ -420,7 +421,7 @@ const PLACES = [
   // ── BARS & NIGHTLIFE ──
   { name:"Alcove Restaurant & Bar",          lat:9.7466815, lng:99.9757396, cat:"bars", emoji:"🌅",
     note:"Perfect from sunset drinks through the night. Amazing vibe, great music — this place has soul! ✨",
-    open:16, close:24 },
+    open:17.5, close:24, closedDays:[1] },
   { name:"Eden Garden",                      lat:9.6933020, lng:100.0759891,cat:"bars", emoji:"🎉",
     note:"Party every Saturday night going until sunrise! For the full moon energy crowd, this is home! 🌙",
     open:20, close:6  },
@@ -432,7 +433,7 @@ const PLACES = [
     open:17, close:24 },
   { name:"Hollystone",                       lat:9.7500326, lng:99.9878402, cat:"bars", emoji:"🎊",
     note:"Saturday night party central! Usually free entrance before 9pm — get there early! 🎊",
-    open:18, close:4  },
+    open:20, close:2, openDays:[6] },
   { name:"Charlie's",                        lat:9.7432845, lng:99.9768045, cat:"bars", emoji:"🍺",
     note:"A classic Koh Phangan hang-out. Cold drinks, great company, pure island life! 🌴",
     open:17, close:2  },
@@ -469,13 +470,13 @@ const PLACES = [
   // ── COFFEE & BREAKFAST ──
   { name:"Indigo Specialty Coffee & Bakery", lat:9.7490936, lng:99.9753358, cat:"coffee", emoji:"☕",
     note:"Coffee that would make a Melbourne barista jealous. Incredible baked goods too! ☕🥐",
-    open:7,  close:17 },
+    open:7,  close:22 },
   { name:"Indigo Cafe & Eatery Thongsala",   lat:9.7120307, lng:99.9864898, cat:"coffee", emoji:"☕",
     note:"The Thongsala outpost of the beloved Indigo brand. Coffee + bites before exploring town!",
     open:7,  close:17 },
   { name:"Bubba's Thong Sala",               lat:9.7122752, lng:99.9867619, cat:"coffee", emoji:"🧇",
     note:"Breakfast champions! Hearty plates, great smoothies, and totally cozy vibes. Start your day right!",
-    open:7,  close:16 },
+    open:7,  close:17 },
   { name:"Sage — Breakfast and More",        lat:9.7017285, lng:100.0168394,cat:"coffee", emoji:"🌿",
     note:"Fresh, clean, and thoughtful. Love the healthy options and beautiful presentation! 🌱",
     open:7,  close:16 },
@@ -504,10 +505,10 @@ const PLACES = [
   // ── GYMS ──
   { name:"Xantiva Gym",                      lat:9.7507764, lng:99.9736005, cat:"gyms", emoji:"💪",
     note:"Top-notch gym facilities on the island. Stay fit even in paradise — no excuses! 🏋️",
-    open:6,  close:21 },
+    open:7,  close:21 },
   { name:"Podium Gym CrossFit",              lat:9.7168432, lng:99.9952124, cat:"gyms", emoji:"🏋️",
     note:"CrossFit intensity meets island energy. Great community, great coaches — you'll love it!",
-    open:6,  close:20 },
+    open:7,  close:22 },
 
   // ── ACTIVITIES ──
   { name:"Bandana Studio — Ceramic & Craft", lat:9.7237866, lng:99.9946866, cat:"activities", emoji:"🏺",
@@ -515,7 +516,7 @@ const PLACES = [
     open:10, close:18 },
   { name:"ATV Station by Speed",             lat:9.7291957, lng:100.0440633,cat:"activities", emoji:"🚵",
     note:"Explore the jungle by ATV! An absolute blast — adventure seekers, this is for you! 🌿",
-    open:9,  close:18 },
+    open:10, close:18 },
   { name:"Martial Arts Academy — Muay Thai", lat:9.7359075, lng:99.9800451, cat:"activities", emoji:"🥊",
     note:"Train like a local! Great group or private Muay Thai lessons — an unforgettable island experience!",
     open:8,  close:20 },
@@ -525,6 +526,14 @@ const PLACES = [
   { name:"CoCo Family Play Center",          lat:9.7194619, lng:99.9923203, cat:"activities", emoji:"🎠",
     note:"Family-friendly fun for kids of all ages! Perfect for a morning of play and big smiles! 😄",
     open:9,  close:18 },
+
+  // ── MASSAGE ──
+  { name:"145 Pure Relax Massage & Spa",     lat:9.7085,    lng:99.9912,   cat:"massage", emoji:"💆",
+    note:"Heavenly massages in a serene spa setting. You've earned it — pure relaxation awaits! 🌺",
+    open:10, close:22 },
+  { name:"Kanda Massage",                    lat:9.7111573, lng:99.9868653, cat:"massage", emoji:"💆",
+    note:"Excellent traditional Thai massage. Skilled therapists, great value — your muscles will thank you! 🙏",
+    open:9,  close:23 },
 ];
 
 // ─────────────────────────────────────────────
@@ -537,6 +546,7 @@ const CAT_EMOJI = {
   coffee:      '☕',
   gyms:        '💪',
   activities:  '🎯',
+  massage:     '💆',
 };
 
 // ─────────────────────────────────────────────
@@ -547,6 +557,9 @@ let userLat = null, userLng = null;
 let activeCat = 'all', radiusKm = 3;
 let afterSunset = false, beforeSunrise = false;
 let map, userMarker, placeMarkers = [];
+let lastRenderTime = 0, lastRenderLat = null, lastRenderLng = null;
+const RENDER_MIN_MOVE_KM = 0.5;
+const RENDER_MIN_MS = 30 * 60 * 1000;
 
 // ─────────────────────────────────────────────
 //  UTILS
@@ -558,18 +571,28 @@ function haversine(lat1,lng1,lat2,lng2) {
 }
 function fmtDist(km){ return km<1 ? Math.round(km*1000)+' m' : km.toFixed(1)+' km'; }
 function isOpen(p){
-  const now=new Date(), h=now.getHours()+now.getMinutes()/60;
-  const {open:o,close:c}=p;
+  const now=new Date(), h=now.getHours()+now.getMinutes()/60, day=now.getDay();
+  const {open:o,close:c,openDays,closedDays}=p;
+  if(openDays&&!openDays.includes(day)) return false;
+  if(closedDays&&closedDays.includes(day)) return false;
   return c<o ? h>=o||h<c : h>=o&&h<c;
 }
 function fmtHours(p){
   if(p.isBeach) return 'Sunrise – sunset';
-  const h=n=>{if(n===0||n===24)return '12am';if(n===12)return '12pm';return n<12?n+'am':(n-12)+'pm';};
-  return h(p.open)+' – '+h(p.close);
+  const h=n=>{
+    if(n===0||n===24)return '12am'; if(n===12)return '12pm';
+    const hh=Math.floor(n),mm=Math.round((n-hh)*60),suffix=n<12?'am':'pm',h12=hh<=12?hh:hh-12;
+    return mm>0?`${h12}:${mm.toString().padStart(2,'0')}${suffix}`:`${h12}${suffix}`;
+  };
+  let str=h(p.open)+' – '+h(p.close);
+  const dn=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  if(p.openDays) str+=' · '+p.openDays.map(d=>dn[d]).join('/')+ ' only';
+  if(p.closedDays) str+=' · Closed '+p.closedDays.map(d=>dn[d]).join('/');
+  return str;
 }
 function catLabel(c){
   return {restaurants:'Restaurant',bars:'Bar & Nightlife',beaches:'Beach',
-          coffee:'Coffee & Breakfast',gyms:'Gym',activities:'Activity'}[c]||c;
+          coffee:'Coffee & Breakfast',gyms:'Gym',activities:'Activity',massage:'Massage & Spa'}[c]||c;
 }
 
 // ─────────────────────────────────────────────
@@ -688,13 +711,29 @@ function showStatus(){
 }
 
 function onPosition(pos){
-  userLat=pos.coords.latitude; userLng=pos.coords.longitude;
+  const lat=pos.coords.latitude, lng=pos.coords.longitude;
+  const firstFix=userLat===null;
+  userLat=lat; userLng=lng;
   triedLowAccuracy=false;
-  showStatus();
-  document.getElementById('locDot').className='loc-dot found';
-  document.getElementById('locText').textContent=`📍 You're on the map! Showing spots within ${radiusKm} km`;
-  updateMapUser(userLat,userLng);
-  render();
+
+  // Always update the map marker
+  updateMapUser(lat,lng);
+
+  // Show status bar on first fix
+  if(firstFix){
+    showStatus();
+    document.getElementById('locDot').className='loc-dot found';
+    document.getElementById('locText').textContent=`📍 You're on the map! Showing spots within ${radiusKm} km`;
+  }
+
+  // Throttle list render: only on first fix, big move, or 30 min elapsed
+  const now=Date.now();
+  const movedFar=lastRenderLat!==null&&haversine(lat,lng,lastRenderLat,lastRenderLng)>RENDER_MIN_MOVE_KM;
+  const longEnough=(now-lastRenderTime)>=RENDER_MIN_MS;
+  if(firstFix||movedFar||longEnough){
+    lastRenderTime=now; lastRenderLat=lat; lastRenderLng=lng;
+    render();
+  }
 }
 
 function onGeoError(err){
@@ -760,8 +799,14 @@ function initLocation(){
     document.getElementById('locText').textContent='Location not available on this device 🌴';
     return;
   }
-  // Tap button is already visible in HTML — do nothing here.
-  // iOS Safari REQUIRES a real user tap before showing the location permission dialog.
+  // Silently probe with a very short timeout.
+  // If permission was already granted (returning user), this succeeds and auto-starts.
+  // If not yet granted or denied, it times out quickly and the tap button stays visible.
+  navigator.geolocation.getCurrentPosition(
+    pos=>{ onPosition(pos); beginWatching(); },
+    ()=>{},
+    {enableHighAccuracy:false, timeout:1500, maximumAge:300000}
+  );
 }
 
 // ─────────────────────────────────────────────
