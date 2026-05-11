@@ -371,7 +371,7 @@
 // ─────────────────────────────────────────────
 //  DATA
 // ─────────────────────────────────────────────
-const PLACES = [
+const METADATA = [
   // ── RESTAURANTS ──
   { name:"The Grounds X Siam Cookies",       lat:9.7228429, lng:99.9768763, cat:"restaurants", emoji:"🍪",
     note:"Trendy café-restaurant with amazing cookies and good eats. A lovely chill-out spot! 😋",
@@ -420,6 +420,9 @@ const PLACES = [
     open:10, close:21 },
   { name:"Mama Rocky's",                     lat:9.7697680, lng:100.0565973,cat:"restaurants", emoji:"🍹",
     note:"Mama Rocky knows how to do it right — great food AND cocktails. The double win! 🏆",
+    open:12, close:23 },
+  { name:"Sirtaki Taverna — Greek",           lat:9.7123948, lng:99.9900979, cat:"restaurants", emoji:"🇬🇷",
+    note:"Authentic Greek flavors on the island! A lovely change of pace — opa! 🍋",
     open:12, close:23 },
 
   // ── BARS & NIGHTLIFE ──
@@ -532,13 +535,16 @@ const PLACES = [
     open:9,  close:18 },
 
   // ── MASSAGE ──
-  { name:"145 Pure Relax Massage & Spa",     lat:9.7085,    lng:99.9912,   cat:"massage", emoji:"💆",
+  { name:"Pure Relax Massage & Spa",          lat:9.7169556, lng:99.9859309, cat:"massage", emoji:"💆",
     note:"Heavenly massages in a serene spa setting. You've earned it — pure relaxation awaits! 🌺",
     open:10, close:22 },
   { name:"Kanda Massage",                    lat:9.7111573, lng:99.9868653, cat:"massage", emoji:"💆",
     note:"Excellent traditional Thai massage. Skilled therapists, great value — your muscles will thank you! 🙏",
     open:9,  close:23 },
 ];
+
+// live list — starts as hardcoded fallback, replaced by KML fetch on load
+let places = METADATA;
 
 // ─────────────────────────────────────────────
 //  CATEGORY ICONS  (one consistent icon per category)
@@ -663,7 +669,7 @@ function render(){
     return;
   }
 
-  let filtered=PLACES.filter(p=>{
+  let filtered=places.filter(p=>{
     if(activeCat!=='all'&&p.cat!==activeCat) return false;
     if(p.isBeach&&(afterSunset||beforeSunrise)) return false;
     if(!isOpen(p)) return false;
@@ -835,6 +841,57 @@ function initLocation(){
 }
 
 // ─────────────────────────────────────────────
+//  KML SYNC  (pulls from Google My Maps once per day)
+// ─────────────────────────────────────────────
+function findMeta(lat, lng) {
+  let best = null, bestDist = Infinity;
+  for (const m of METADATA) {
+    const d = haversine(lat, lng, m.lat, m.lng);
+    if (d < bestDist) { bestDist = d; best = m; }
+  }
+  return bestDist < 0.3 ? best : null; // within 300 m
+}
+
+function applyKmlPlaces(kmlPlaces) {
+  places = kmlPlaces.map(p => {
+    const m = findMeta(p.lat, p.lng);
+    return {
+      name: p.name, lat: p.lat, lng: p.lng, cat: p.cat,
+      note:      m?.note      ?? null,
+      open:      m?.open      ?? 9,
+      close:     m?.close     ?? 22,
+      emoji:     m?.emoji     || CAT_EMOJI[p.cat] || '📍',
+      isBeach:   m?.isBeach   || false,
+      openDays:  m?.openDays,
+      closedDays:m?.closedDays,
+    };
+  });
+  if (userLat) render();
+}
+
+async function loadPlaces() {
+  const CACHE_KEY = 'sitaya_kml', TS_KEY = 'sitaya_kml_ts';
+  const ONE_DAY = 86400_000;
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    const ts     = parseInt(localStorage.getItem(TS_KEY) || '0');
+    if (cached && Date.now() - ts < ONE_DAY) {
+      applyKmlPlaces(JSON.parse(cached)); return;
+    }
+  } catch(_) {}
+  try {
+    const resp = await fetch('/api/kml');
+    if (!resp.ok) return;
+    const { places: kml, ts } = await resp.json();
+    if (kml?.length) {
+      localStorage.setItem(CACHE_KEY, JSON.stringify(kml));
+      localStorage.setItem(TS_KEY, String(ts ?? Date.now()));
+      applyKmlPlaces(kml);
+    }
+  } catch(_) {} // silently fall back to hardcoded METADATA
+}
+
+// ─────────────────────────────────────────────
 //  EVENTS
 // ─────────────────────────────────────────────
 document.getElementById('radiusSlider').addEventListener('input',e=>{
@@ -854,8 +911,9 @@ document.getElementById('cats').addEventListener('click',e=>{
 // ─────────────────────────────────────────────
 //  BOOT
 // ─────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded',()=>{
+document.addEventListener('DOMContentLoaded', async ()=>{
   initMap(); refreshSun(); render(); initLocation();
+  loadPlaces(); // async — updates list from My Maps in background
   setInterval(()=>{ refreshSun(); if(userLat) render(); },60_000);
 });
 </script>
