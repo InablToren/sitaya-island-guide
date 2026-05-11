@@ -310,7 +310,11 @@
 
   <!-- Location bar -->
   <div class="loc-bar" id="locBar">
-    <button class="loc-tap-btn" id="locTapBtn" onclick="startLocationFromTap()">
+    <div id="locSearching" style="display:flex; align-items:center; gap:9px; width:100%">
+      <div class="loc-dot" style="background:var(--gold); animation:pulse 2.5s infinite; flex-shrink:0"></div>
+      <span>Finding your location…</span>
+    </div>
+    <button class="loc-tap-btn" id="locTapBtn" onclick="startLocationFromTap()" style="display:none">
       <div class="pulse-ring">📍</div>
       <span>Tap to find spots near you!</span>
     </button>
@@ -705,9 +709,15 @@ let watchId = null;
 let triedLowAccuracy = false;
 
 function showStatus(){
+  document.getElementById('locSearching').style.display='none';
   document.getElementById('locTapBtn').style.display='none';
-  const s=document.getElementById('locStatus');
-  s.style.display='flex';
+  document.getElementById('locStatus').style.display='flex';
+}
+function showTapBtn(){
+  document.getElementById('locSearching').style.display='none';
+  const btn=document.getElementById('locTapBtn');
+  btn.style.display='flex'; btn.disabled=false;
+  btn.querySelector('span').textContent='Tap to find spots near you!';
 }
 
 function onPosition(pos){
@@ -784,12 +794,19 @@ function startLocationFromTap(){
 }
 
 function retryLocation(){
-  document.getElementById('locTapBtn').style.display='flex';
   document.getElementById('locStatus').style.display='none';
-  document.getElementById('locTapBtn').disabled=false;
-  document.getElementById('locTapBtn').querySelector('span').textContent='Tap to find spots near you!';
+  document.getElementById('locSearching').style.display='flex';
   triedLowAccuracy=false;
   if(watchId) navigator.geolocation.clearWatch(watchId);
+  navigator.geolocation.getCurrentPosition(
+    pos=>{ onPosition(pos); beginWatching(); },
+    err=>{
+      if(err.code===1){ showStatus(); document.getElementById('locDot').className='loc-dot error';
+        document.getElementById('locText').textContent='📵 Location blocked — check Settings → Safari → Location.';
+      } else { showTapBtn(); }
+    },
+    {enableHighAccuracy:true, timeout:10000, maximumAge:0}
+  );
 }
 
 function initLocation(){
@@ -799,13 +816,21 @@ function initLocation(){
     document.getElementById('locText').textContent='Location not available on this device 🌴';
     return;
   }
-  // Silently probe with a very short timeout.
-  // If permission was already granted (returning user), this succeeds and auto-starts.
-  // If not yet granted or denied, it times out quickly and the tap button stays visible.
+  // Try automatically on load — triggers the OS permission dialog without needing a tap.
+  // Falls back to tap button only on timeout (rare older iOS behaviour).
   navigator.geolocation.getCurrentPosition(
     pos=>{ onPosition(pos); beginWatching(); },
-    ()=>{},
-    {enableHighAccuracy:false, timeout:1500, maximumAge:300000}
+    err=>{
+      if(err.code===1){
+        showStatus(); document.getElementById('locDot').className='loc-dot error';
+        document.getElementById('locText').innerHTML='📵 Location blocked. '
+          +'<span style="text-decoration:underline;cursor:pointer;color:var(--gold)" onclick="retryLocation()">Tap to retry</span>'
+          +' — iPhone: Settings → Safari → Location → Allow.';
+      } else {
+        showTapBtn(); // timeout — show tap button as last resort
+      }
+    },
+    {enableHighAccuracy:true, timeout:10000, maximumAge:300000}
   );
 }
 
