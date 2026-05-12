@@ -310,11 +310,11 @@
 
   <!-- Location bar -->
   <div class="loc-bar" id="locBar">
-    <div id="locSearching" style="display:flex; align-items:center; gap:9px; width:100%">
+    <div id="locSearching" style="display:none; align-items:center; gap:9px; width:100%">
       <div class="loc-dot" style="background:var(--gold); animation:pulse 2.5s infinite; flex-shrink:0"></div>
       <span>Finding your location…</span>
     </div>
-    <button class="loc-tap-btn" id="locTapBtn" onclick="startLocationFromTap()" style="display:none">
+    <button class="loc-tap-btn" id="locTapBtn" onclick="startLocationFromTap()">
       <div class="pulse-ring">📍</div>
       <span>Tap to find spots near you!</span>
     </button>
@@ -822,21 +822,14 @@ function initLocation(){
     document.getElementById('locText').textContent='Location not available on this device 🌴';
     return;
   }
-  // Try automatically on load — triggers the OS permission dialog without needing a tap.
-  // Falls back to tap button only on timeout (rare older iOS behaviour).
+  // Tap button is already visible in the HTML — it's the reliable path on iOS Safari.
+  // Run a silent 2-second probe alongside it: if the OS already has a cached GPS fix
+  // (returning user who previously allowed), this succeeds and hides the button automatically.
+  // Any failure (timeout, no cache, denied) is silently ignored — the button stays.
   navigator.geolocation.getCurrentPosition(
     pos=>{ onPosition(pos); beginWatching(); },
-    err=>{
-      if(err.code===1){
-        showStatus(); document.getElementById('locDot').className='loc-dot error';
-        document.getElementById('locText').innerHTML='📵 Location blocked. '
-          +'<span style="text-decoration:underline;cursor:pointer;color:var(--gold)" onclick="retryLocation()">Tap to retry</span>'
-          +' — iPhone: Settings → Safari → Location → Allow.';
-      } else {
-        showTapBtn(); // timeout — show tap button as last resort
-      }
-    },
-    {enableHighAccuracy:true, timeout:10000, maximumAge:300000}
+    ()=>{},
+    {enableHighAccuracy:false, timeout:2000, maximumAge:Infinity}
   );
 }
 
