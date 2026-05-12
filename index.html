@@ -369,9 +369,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.8.0/suncalc.min.js"></script>
 <script>
 // ─────────────────────────────────────────────
-//  DATA
+//  DATA  (loaded from places.json on boot)
 // ─────────────────────────────────────────────
-const METADATA = [
+const _UNUSED = [
   // ── RESTAURANTS ──
   { name:"The Grounds X Siam Cookies",       lat:9.7228429, lng:99.9768763, cat:"restaurants", emoji:"🍪",
     note:"Trendy café-restaurant with amazing cookies and good eats. A lovely chill-out spot! 😋",
@@ -543,8 +543,7 @@ const METADATA = [
     open:9,  close:23 },
 ];
 
-// live list — starts as hardcoded fallback, replaced by KML fetch on load
-let places = METADATA;
+let places = [];
 
 // ─────────────────────────────────────────────
 //  CATEGORY ICONS  (one consistent icon per category)
@@ -690,7 +689,7 @@ function render(){
   grid.innerHTML=filtered.map((p,i)=>{
     const dist=haversine(userLat,userLng,p.lat,p.lng);
     const open=isOpen(p);
-    const url=`https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`;
+    const url=p.mapsUrl||`https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`;
     return `
       <div class="card" style="animation-delay:${i*.04}s">
         <div class="card-row1">
@@ -834,54 +833,14 @@ function initLocation(){
 }
 
 // ─────────────────────────────────────────────
-//  KML SYNC  (pulls from Google My Maps once per day)
+//  PLACES  (loaded from places.json)
 // ─────────────────────────────────────────────
-function findMeta(lat, lng) {
-  let best = null, bestDist = Infinity;
-  for (const m of METADATA) {
-    const d = haversine(lat, lng, m.lat, m.lng);
-    if (d < bestDist) { bestDist = d; best = m; }
-  }
-  return bestDist < 0.3 ? best : null; // within 300 m
-}
-
-function applyKmlPlaces(kmlPlaces) {
-  places = kmlPlaces.map(p => {
-    const m = findMeta(p.lat, p.lng);
-    return {
-      name: p.name, lat: p.lat, lng: p.lng, cat: p.cat,
-      note:      m?.note      ?? null,
-      open:      m?.open      ?? 9,
-      close:     m?.close     ?? 22,
-      emoji:     m?.emoji     || CAT_EMOJI[p.cat] || '📍',
-      isBeach:   m?.isBeach   || false,
-      openDays:  m?.openDays,
-      closedDays:m?.closedDays,
-    };
-  });
-  if (userLat) render();
-}
-
 async function loadPlaces() {
-  const CACHE_KEY = 'sitaya_kml', TS_KEY = 'sitaya_kml_ts';
-  const ONE_DAY = 86400_000;
   try {
-    const cached = localStorage.getItem(CACHE_KEY);
-    const ts     = parseInt(localStorage.getItem(TS_KEY) || '0');
-    if (cached && Date.now() - ts < ONE_DAY) {
-      applyKmlPlaces(JSON.parse(cached)); return;
-    }
+    const resp = await fetch('/places.json');
+    if (resp.ok) { places = await resp.json(); }
   } catch(_) {}
-  try {
-    const resp = await fetch('/api/kml');
-    if (!resp.ok) return;
-    const { places: kml, ts } = await resp.json();
-    if (kml?.length) {
-      localStorage.setItem(CACHE_KEY, JSON.stringify(kml));
-      localStorage.setItem(TS_KEY, String(ts ?? Date.now()));
-      applyKmlPlaces(kml);
-    }
-  } catch(_) {} // silently fall back to hardcoded METADATA
+  if (userLat) render();
 }
 
 // ─────────────────────────────────────────────
@@ -905,8 +864,9 @@ document.getElementById('cats').addEventListener('click',e=>{
 //  BOOT
 // ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async ()=>{
-  initMap(); refreshSun(); render(); initLocation();
-  loadPlaces(); // async — updates list from My Maps in background
+  initMap(); refreshSun(); render();
+  await loadPlaces(); // load places.json before starting location
+  initLocation();
   setInterval(()=>{ refreshSun(); if(userLat) render(); },60_000);
 });
 </script>
